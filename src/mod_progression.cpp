@@ -20,7 +20,7 @@ void AddSC_boss_onyxia_progression();
 void AddSC_npc_archmage_landalock();
 void AddSC_npc_archmage_timear();
 
-void Addmod_progressionScripts()
+void Addmod_02_progressionScripts()
 {
     new Progression();
 
