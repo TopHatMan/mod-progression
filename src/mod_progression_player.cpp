@@ -139,7 +139,7 @@ bool Progression::OnPlayerCanEnterMap(Player* player, MapEntry const* entry, Ins
         return true;
 
     if (!loginCheck && player)
-        player->GetSession()->SendAreaTriggerMessage("This instance is locked until the server reaches the level %u progression stage.", requiredLevelCap);
+        player->GetSession()->SendAreaTriggerMessage("This instance is locked until the server reaches the level {} progression stage.", requiredLevelCap);
 
     return false;
 }
