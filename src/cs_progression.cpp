@@ -1,4 +1,5 @@
 #include "Chat.h"
+#include "Config.h"
 
 #include "mod_progression.h"
 
