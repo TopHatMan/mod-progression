@@ -1,26 +1,32 @@
 #include "ArenaSeasonMgr.h"
-    
+
 #include "mod_progression.h"
 
 void Progression::OnStartup()
 {
-    if (sProgressionMgr->GetPhaseId() < 9)
+    uint8 patchId = sProgressionMgr->GetPatchId();
+
+    if (patchId < PATCH_BEFORE_THE_STORM)
+    {
         sArenaSeasonMgr->ChangeCurrentSeason(1);
-    else if (sProgressionMgr->GetPhaseId() < 10)
+        sArenaSeasonMgr->SetSeasonState(ARENA_SEASON_STATE_DISABLED);
+        return;
+    }
+
+    if (patchId < PATCH_BLACK_TEMPLE)
+        sArenaSeasonMgr->ChangeCurrentSeason(1);
+    else if (patchId < PATCH_THE_GODS_OF_ZUL_AMAN)
         sArenaSeasonMgr->ChangeCurrentSeason(2);
-    else if (sProgressionMgr->GetPhaseId() < 12)
+    else if (patchId < PATCH_FURY_OF_THE_SUNWELL)
         sArenaSeasonMgr->ChangeCurrentSeason(3);
-    else if (sProgressionMgr->GetPhaseId() < 14)
+    else if (patchId < PATCH_ECHOES_OF_DOOM)
         sArenaSeasonMgr->ChangeCurrentSeason(4);
-    else if (sProgressionMgr->GetPhaseId() < 15)
+    else if (patchId < PATCH_SECRETS_OF_ULDUAR)
         sArenaSeasonMgr->ChangeCurrentSeason(5);
-    else if (sProgressionMgr->GetPhaseId() < 16)
+    else if (patchId < PATCH_CALL_OF_THE_CRUSADE)
         sArenaSeasonMgr->ChangeCurrentSeason(6);
-    else if (sProgressionMgr->GetPhaseId() < 17)
+    else if (patchId < PATCH_FALL_OF_THE_LICH_KING)
         sArenaSeasonMgr->ChangeCurrentSeason(7);
     else
         sArenaSeasonMgr->ChangeCurrentSeason(8);
-
-    if (sProgressionMgr->GetPhaseId() < 8 || sProgressionMgr->GetPhaseId() == 13)
-        sArenaSeasonMgr->SetSeasonState(ARENA_SEASON_STATE_DISABLED);
 }

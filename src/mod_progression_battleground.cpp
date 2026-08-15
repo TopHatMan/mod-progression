@@ -4,7 +4,7 @@
 
 void Progression::OnBattlegroundEndReward(Battleground* bg, Player* player, TeamId winnerTeamId)
 {
-    if (sProgressionMgr->GetPhaseId() >= 13)
+    if (sProgressionMgr->GetPatchId() >= PATCH_ECHOES_OF_DOOM)
         return;
 
     if (player->IsGameMaster())
@@ -14,22 +14,22 @@ void Progression::OnBattlegroundEndReward(Battleground* bg, Player* player, Team
 
     switch (bg->GetMapId())
     {
-    case MAP_ALTERAC_VALLEY: // Alterac Valley
+    case MAP_ALTERAC_VALLEY:
         token = 20560;
         break;
-    case MAP_WARSONG_GULCH: // Warsong Gulch
+    case MAP_WARSONG_GULCH:
         token = 20558;
         break;
-    case MAP_ARATHI_BASIN: // Arathi Basin
+    case MAP_ARATHI_BASIN:
         token = 20559;
         break;
-    case MAP_EYE_OF_THE_STORM: // Eye of the Storm
+    case MAP_EYE_OF_THE_STORM:
         token = 29024;
         break;
-    case MAP_STRAND_OF_THE_ANCIENTS: // Strand of the Ancients
+    case MAP_STRAND_OF_THE_ANCIENTS:
         token = 42425;
         break;
-    case MAP_ISLE_OF_CONQUEST: // Isle of Conquest
+    case MAP_ISLE_OF_CONQUEST:
         token = 47395;
         break;
     default:

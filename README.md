@@ -1,42 +1,188 @@
-# Progression
-This module offers a different take on progression. It handles content based on phases instead of brackets or by conquering content. It is server-wide and always the same for all players.
+# Unified Progression
 
-# Phases
-These are all the phases included with this module. Phase 0 through 6 simulates 1.12, 7 through 12 simulates 2.4, and 13 through 18 simulates 3.3.5. Each phase locks content in order to create progression. What each phase unlocks can be changed as this is not meant to mirror what Blizzard did with Classic
+**Unified Progression** is a rework of `mod-progression` for AzerothCore that is intended to become a single, deterministic progression system for servers that want to experience World of Warcraft content in historical order on the 3.3.5 client/core.
 
-- Phase 0: Leveling & Dungeons
-- Phase 1: Maraudon, Molten Core, Onyxia's Lair
-- Phase 2: Dire Maul, Azuregos, Lord Kazzak, Alterac Valley, Warsong Gulch
-- Phase 3: Blackwing Lair, Darkmoon Faire, Arathi Basin
-- Phase 4: Zul'Gurub, Dragons of Nightmare
-- Phase 5: Ahn'Qiraj, Stranglethorn Fishing Extravaganza
-- Phase 6: Naxxramas, Scourge Invasion
-- Phase 7: Blood Elf, Draenei, Outland Leveling & Dungeons, Jewelcrafting, Eye of the Storm
-- Phase 8: Karazhan, Gruul's Lair, Magtheridon's Lair, Arena Season 1
-- Phase 9: Serpentshrine Cavern, Tempest Keep: The Eye, Ogri'la, Sha'tari Skyguard, Arena Season 2
-- Phase 10: Battle for Mount Hyjal, Black Temple, Arena Season 3
-- Phase 11: Zul'Aman
-- Phase 12: Isle of Quel'Danas, Magister's Terrace, Sunwell Plateau, Arena Season 4
-- Phase 13: Death Knight, WotLK Leveling & Dungeons
-- Phase 14: Naxxramas, Eye of Eternity, Obsidian Sanctum, Vault of Archavon, Arena Season 5
-- Phase 15: Ulduar, Isle of Conquest, Arena Season 6
-- Phase 16: Trial of the Crusader, Trial of the Champion, Argent Tournament Grounds, Onyxia's Lair, Arena Season 7
-- Phase 17: Forge of Souls, Pit of Saron, Halls of Reflection, Icecrown Citadel, Arena Season 8
-- Phase 18: Ruby Sanctum
+The repository is still named `mod-progression` while the rewrite is in progress. "Unified Progression" is the working project name for the new architecture.
 
-# Note
-Keep in mind that it's not complete even if there seems to be a lot done. It's not meant to be 1:1 compared to retail because with changes to spells and so forth that's impossible without client and core edits, and those kind of edits are not what I want.
+## Why this fork exists
 
-Phase 6 does include Naxxramas and the Scourge Invasion event but those are not implemented yet. I do plan to implement Naxxramas eventually but it's not high priority.
+The original progression setup grew into several overlapping systems:
 
-The event for opening the Gate of Ahn'Qiraj just requires a player to complete the line of quests required to obtain The Scepter of the Shifting Sands too. I have no plans to fully implement the War Effort event.
+- server-wide historical content progression,
+- level/bracket progression,
+- individual-character progression,
+- SQL that directly phases creatures and gameobjects,
+- runtime hooks that separately gate maps, mechanics and player power.
 
-# Corrections
-Create issue reports for anything that isn't correct and I will look into it as soon as I have the time to. If something isn't intended to be in a certain phase, or if it is, I want to change it and would greatly appreciate reports for it.
+Each system solves a useful problem, but running them together can create contradictory world state. One module can make an NPC visible while another still hides the quest object it depends on. A level unlock can remove a database restriction that a historical patch still expects to exist. Two difficulty layers can also modify the same player behavior at the same time.
 
-The same can be said for improvements to the code. I'm not a professional developer in any way so it might not be clean or very optimized and therefore I welcome suggestions for that too.
+This fork exists to remove those overlaps and make progression have **one source of truth**.
 
-# Pull Requests
-I don't accept pull requests. There are a few exceptions listed below, and all of them have to be true for me to consider merging a pull request.
-- It's something I *really* want or that I think should be included with the module.
-- It matches my code style.
+## Core design
+
+Unified Progression separates progression into three concepts.
+
+### 1. Historical patch
+
+```ini
+Progression.Patch = 0
+```
+
+The active patch determines what content existed at that point in World of Warcraft's timeline. Patch SQL is cumulative and is applied in historical order.
+
+For example, selecting patch `2` applies the 1.1, 1.2 and 1.3 data layers.
+
+### 2. Level milestone
+
+```ini
+Progression.LevelGating.Enabled = 1
+Progression.LevelCap = 60
+```
+
+Level progression controls the current leveling milestone without competing with patch SQL for ownership of historical content state.
+
+The supported milestone ladder is:
+
+`10 -> 20 -> 30 -> 40 -> 50 -> 60 -> 70 -> 80`
+
+Content is available only when both the level milestone and the historical patch allow it.
+
+### 3. Progression scope
+
+The individual-progression merge will define **whose progression state is evaluated**, rather than maintaining a second independent content timeline.
+
+Planned scopes are:
+
+- `Server` — one shared progression state for the realm.
+- `Character` — each character progresses independently using the same patch/content definitions.
+- `Account` — a possible future option for progression shared across characters.
+
+The goal is to reuse the persistence, phasing and player-aware behavior from Individual Player Progression while keeping one authoritative definition of what every patch unlocks.
+
+See `docs/unified-progression.md` for the architecture.
+
+## The most important rule: unlocks are atomic
+
+A content unlock is not just a creature phase or one SQL row.
+
+If a feature depends on several pieces, those pieces must move through progression together. A historical unlock may include:
+
+- creatures and NPCs,
+- gameobjects,
+- quest starters and quest enders,
+- quest items and loot,
+- vendors and trainers,
+- instance access,
+- conditions and disables,
+- scripts and runtime behavior.
+
+The rewrite treats these as one logical content bundle.
+
+This rule was reinforced during the Vanilla audit by the Molten Core discovery/attunement chain. The old patch data hides both Lothos Riftwaker and the Core Fragment in the initial state, and the 1.3 layer restores both. A temporary correction had incorrectly restored Lothos during 1.1 while leaving the Core Fragment hidden, creating an impossible quest state. That correction has been removed. The lesson is now part of the module design: **dependent progression data must never be advanced independently.**
+
+## Vanilla patch map
+
+| ID | Patch | Title |
+|---:|:---:|---|
+| 0 | 1.1 | World of Warcraft |
+| 1 | 1.2 | Mysteries of Maraudon |
+| 2 | 1.3 | Ruins of the Dire Maul |
+| 3 | 1.4 | The Call to War |
+| 4 | 1.5 | Battlegrounds |
+| 5 | 1.6 | Assault on Blackwing Lair |
+| 6 | 1.7 | Rise of the Blood God |
+| 7 | 1.8 | Dragons of Nightmare |
+| 8 | 1.9 | The Gates of Ahn'Qiraj |
+| 9 | 1.10 | Storms of Azeroth |
+| 10 | 1.11 | Shadow of the Necropolis |
+| 11 | 1.12 | Drums of War |
+
+TBC and Wrath patch SQL is also present as a foundation, but the active accuracy audit is currently focused on Vanilla before the later eras are trusted as authoritative progression data.
+
+## Accuracy model
+
+A 3.3.5 client/core cannot literally become a 1.1, 1.12, 2.x or early-Wrath client. Unified Progression therefore separates historical accuracy into four layers:
+
+1. **Data gating** — creatures, gameobjects, quests, vendors, recipes, loot, instances, raids, world bosses and events.
+2. **Runtime rules** — level/expansion caps, battleground availability, quest UI behavior and other rules exposed by AzerothCore.
+3. **Server-side approximations** — mechanics or tuning needed because the 3.3.5 ruleset differs materially from the target era.
+4. **Client limitations** — behavior that cannot be faithfully reproduced without client changes and must therefore be documented rather than silently approximated.
+
+See `docs/vanilla-patch-roadmap.md` for the ongoing audit.
+
+## SQL loading
+
+The module uses AzerothCore's database updater and loads every patch directory from 1.1 through the selected patch.
+
+It automatically detects either supported module source directory:
+
+- `mod-02-progression`
+- `mod-progression`
+
+A custom source directory can be supplied with `Progression.ModuleDirectory`.
+
+### Resetting patch SQL
+
+During development or when intentionally moving backward in the timeline:
+
+```ini
+Progression.Reset = 1
+```
+
+This clears the module's `patch_*` updater records so the selected cumulative patch layers are reapplied on startup.
+
+After a successful reset, return it to:
+
+```ini
+Progression.Reset = 0
+```
+
+A reset is not intended to be a permanent runtime mode.
+
+## Current recommended Vanilla configuration
+
+```ini
+Progression.LevelGating.Enabled = 1
+Progression.LevelCap = 60
+Progression.Patch = 0
+Progression.Reset = 0
+```
+
+Adjust the selected patch as the realm progresses.
+
+## Admin command
+
+```text
+.progression info
+```
+
+This reports the active patch, level gating state, effective level cap, patch-era cap and SQL reset state.
+
+## Rewrite and merge roadmap
+
+The current work is intentionally more than a patch-data cleanup.
+
+1. Audit Vanilla patch SQL and remove contradictory/stale unlocks.
+2. Convert content unlocks into deterministic, testable patch bundles.
+3. Finish migrating the useful level-bracket behavior into the unified runtime engine.
+4. Merge Individual Player Progression persistence and player-aware phasing as a progression **scope**, not as another competing timeline.
+5. Consolidate damage/healing and other era-simulation settings so only one subsystem owns each modifier.
+6. Add validation that detects incomplete unlock bundles and suspicious hidden-content rows before they reach a live realm.
+7. Audit TBC and Wrath with the same rules after Vanilla is stable.
+8. Rename/rebrand the repository and configuration namespace once the unified implementation is ready to replace the legacy modules cleanly.
+
+## Relationship to Individual Player Progression
+
+Individual Player Progression contains valuable work that this project intends to preserve, including character-specific progression persistence, player-aware NPC/gameobject visibility, restored historical content and Playerbots-friendly progression.
+
+The merge is not intended to discard that work. Instead, the goal is to remove duplicate definitions of progression. Unified Progression should answer **what is unlocked**, while the selected progression scope answers **for whom it is unlocked**.
+
+## Project status
+
+This branch is an active rewrite and audit. It should be treated as development software until the Vanilla timeline has been validated end-to-end.
+
+If you are testing it, keep database backups and use `.progression info` when reporting progression-state problems. Reports that identify the active patch, level cap, affected NPC/gameobject/quest ID and current `phaseMask` are especially useful.
+
+## Credits
+
+This work builds on the original `mod-progression`, Individual Player Progression, AzerothCore, TrinityCore and the historical data and restoration work contributed by the wider emulator community. The rewrite exists to make those ideas cooperate predictably rather than forcing server owners to stack several progression systems that can disagree with one another.
