@@ -34,6 +34,7 @@ enum ProgressionPatch : uint8
 };
 
 constexpr uint8 DEFAULT_PROGRESSION_PATCH = PATCH_WORLD_OF_WARCRAFT;
+constexpr uint8 DEFAULT_PROGRESSION_LEVEL_CAP = 60;
 
 class Progression : public AllBattlegroundScript, DatabaseScript, MailScript, PlayerScript, UnitScript, WorldScript
 {
@@ -56,6 +57,7 @@ public:
     bool OnPlayerReputationChange(Player* /*player*/, uint32 /*factionID*/, int32& /*standing*/, bool /*incremental*/) override;
     void OnPlayerQuestComputeXP(Player* player, Quest const* /*quest*/, uint32& /*xpValue*/) override;
     void OnPlayerGiveXP(Player* /*player*/, uint32& /*amount*/, Unit* /*victim*/, uint8 /*xpSource*/) override;
+    bool OnPlayerCanEnterMap(Player* /*player*/, MapEntry const* /*entry*/, InstanceTemplate const* /*instance*/, MapDifficulty const* /*mapDiff*/, bool /*loginCheck*/) override;
 
     // UnitScript
     void ModifyPeriodicDamageAurasTick(Unit* /*target*/, Unit* /*attacker*/, uint32& /*damage*/, SpellInfo const* /*spellInfo*/) override;
@@ -79,6 +81,15 @@ public:
     void SetPatchId(uint8 id) { patchId = id; }
     uint8 GetPatchId() const { return patchId; }
 
+    void SetLevelGatingEnabled(bool enabled) { levelGatingEnabled = enabled; }
+    bool IsLevelGatingEnabled() const { return levelGatingEnabled; }
+
+    void SetLevelCap(uint8 cap) { levelCap = cap; }
+    uint8 GetLevelCap() const { return levelCap; }
+
+    void SetEraLevelCap(uint8 cap) { eraLevelCap = cap; }
+    uint8 GetEraLevelCap() const { return eraLevelCap; }
+
     void SetAuraId(uint8 id) { auraId = id; }
     uint8 GetAuraId() const { return auraId; }
 
@@ -93,6 +104,9 @@ public:
 
 private:
     uint8 patchId{DEFAULT_PROGRESSION_PATCH};
+    bool levelGatingEnabled{true};
+    uint8 levelCap{DEFAULT_PROGRESSION_LEVEL_CAP};
+    uint8 eraLevelCap{60};
     uint8 auraId{6};
     float damageMultiplier{0.6f};
     float healingMultiplier{0.5f};

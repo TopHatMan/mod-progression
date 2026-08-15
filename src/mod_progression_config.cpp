@@ -1,5 +1,13 @@
 #include "mod_progression.h"
 
+namespace
+{
+bool IsValidProgressionLevelCap(uint8 levelCap)
+{
+    return levelCap >= 10 && levelCap <= 80 && levelCap % 10 == 0;
+}
+}
+
 void Progression::OnAfterConfigLoad(bool reload)
 {
     LOG_INFO("server.loading", "Progression...");
@@ -8,6 +16,8 @@ void Progression::OnAfterConfigLoad(bool reload)
     {
         uint8 patchId = sConfigMgr->GetOption<uint8>("Progression.Patch", DEFAULT_PROGRESSION_PATCH);
         uint8 auraId = sConfigMgr->GetOption<uint8>("Progression.IcecrownCitadel.Aura", 6);
+        bool levelGatingEnabled = sConfigMgr->GetOption<bool>("Progression.LevelGating.Enabled", true);
+        uint8 configuredLevelCap = sConfigMgr->GetOption<uint8>("Progression.LevelCap", DEFAULT_PROGRESSION_LEVEL_CAP);
 
         if (patchId >= PATCH_MAX)
         {
@@ -15,8 +25,15 @@ void Progression::OnAfterConfigLoad(bool reload)
             patchId = DEFAULT_PROGRESSION_PATCH;
         }
 
+        if (!IsValidProgressionLevelCap(configuredLevelCap))
+        {
+            LOG_ERROR("server.loading", "Progression.LevelCap ({}) must be one of 10, 20, 30, 40, 50, 60, 70, or 80. Using {}.", configuredLevelCap, DEFAULT_PROGRESSION_LEVEL_CAP);
+            configuredLevelCap = DEFAULT_PROGRESSION_LEVEL_CAP;
+        }
+
         LOG_INFO("server.loading", ">> Patch ID set to {}", patchId);
         sProgressionMgr->SetPatchId(patchId);
+        sProgressionMgr->SetLevelGatingEnabled(levelGatingEnabled);
 
         if (auraId > 6)
         {
@@ -28,27 +45,34 @@ void Progression::OnAfterConfigLoad(bool reload)
         sProgressionMgr->SetAuraId(auraId);
 
         uint32 expansion = EXPANSION_WRATH_OF_THE_LICH_KING;
-        uint32 maxLevel = 80;
+        uint8 eraLevelCap = 80;
 
         if (patchId < PATCH_BEFORE_THE_STORM)
         {
             expansion = EXPANSION_CLASSIC;
-            maxLevel = 60;
+            eraLevelCap = 60;
         }
         else if (patchId < PATCH_ECHOES_OF_DOOM)
         {
             expansion = EXPANSION_THE_BURNING_CRUSADE;
-            maxLevel = 70;
+            eraLevelCap = 70;
         }
+
+        uint8 effectiveLevelCap = eraLevelCap;
+        if (levelGatingEnabled && configuredLevelCap < eraLevelCap)
+            effectiveLevelCap = configuredLevelCap;
+
+        if (configuredLevelCap > eraLevelCap)
+            LOG_INFO("server.loading", ">> Requested level cap {} is above the active patch era cap {}; clamped to {}", configuredLevelCap, eraLevelCap, eraLevelCap);
+
+        sProgressionMgr->SetEraLevelCap(eraLevelCap);
+        sProgressionMgr->SetLevelCap(effectiveLevelCap);
 
         LOG_INFO("server.loading", ">> Expansion set to {}", expansion);
+        LOG_INFO("server.loading", ">> Level progression {}", levelGatingEnabled ? "enabled" : "disabled");
+        LOG_INFO("server.loading", ">> Effective max level set to {}", effectiveLevelCap);
         sWorld->setIntConfig(CONFIG_EXPANSION, expansion);
-
-        if (sWorld->getIntConfig(CONFIG_MAX_PLAYER_LEVEL) > maxLevel)
-        {
-            LOG_INFO("server.loading", ">> Max level set to {}", maxLevel);
-            sWorld->setIntConfig(CONFIG_MAX_PLAYER_LEVEL, maxLevel);
-        }
+        sWorld->setIntConfig(CONFIG_MAX_PLAYER_LEVEL, effectiveLevelCap);
 
         if (sConfigMgr->GetOption<bool>("Progression.QuestInfo.Enforced", true))
         {

@@ -1,6 +1,45 @@
 [worldserver]
 
 ###################################################################################################
+# Unified Progression
+#
+# The module has two server-wide progression axes:
+#   1. Level milestones (10, 20, 30, 40, 50, 60, 70, 80)
+#   2. Historical patch progression (1.1 through 3.3.5)
+#
+# Instance access is the intersection of both axes: reaching a level milestone never bypasses a
+# patch lock, and advancing a patch never bypasses a level milestone.
+###################################################################################################
+
+#
+#    Progression.LevelGating.Enabled
+#        Description: Enable the level-milestone progression system migrated from
+#                     mod-progression-system.
+#        Default:     1
+#
+Progression.LevelGating.Enabled = 1
+
+#
+#    Progression.LevelCap
+#        Description: Current server progression level cap. Valid values:
+#                     10, 20, 30, 40, 50, 60, 70, 80.
+#                     The active patch era still provides an absolute ceiling:
+#                     Vanilla=60, TBC=70, Wrath=80.
+#
+#                     10 - leveling only; no instanced dungeon milestone unlocked
+#                     20 - RFC, WC, Deadmines, SFK, BFD
+#                     30 - Stockades, RFK, Gnomeregan
+#                     40 - Uldaman, RFD, Scarlet Monastery
+#                     50 - Sunken Temple, Zul'Farrak, Maraudon (only once patch allows it)
+#                     60 - late Vanilla dungeons and patch-gated Vanilla raids
+#                     70 - TBC instances, still subject to TBC patch gates
+#                     80 - Wrath instances, still subject to Wrath patch gates
+#
+#        Default:     60
+#
+Progression.LevelCap = 60
+
+#
 #    Progression.Patch
 #        Description: The currently active World of Warcraft patch.
 #                     Patch SQL is cumulative: selecting 1.6 applies 1.1 through 1.6.

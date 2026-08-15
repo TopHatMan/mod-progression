@@ -19,12 +19,14 @@ void AddSC_go_scarab_gate();
 void AddSC_spell_summon_nightbane();
 void AddSC_npc_archmage_landalock();
 void AddSC_npc_archmage_timear();
+void AddSC_progression_commandscript();
 
 namespace
 {
 void RegisterProgressionScripts()
 {
     new Progression();
+    AddSC_progression_commandscript();
 
     uint8 patchId = sConfigMgr->GetOption<uint8>("Progression.Patch", DEFAULT_PROGRESSION_PATCH);
 
