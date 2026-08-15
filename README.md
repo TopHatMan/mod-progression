@@ -1,31 +1,86 @@
-# Progression
+# Unified Progression
 
-This fork turns `mod-progression` back into a **server-wide patch progression module**.
+**Unified Progression** is a rework of `mod-progression` for AzerothCore that is intended to become a single, deterministic progression system for servers that want to experience World of Warcraft content in historical order on the 3.3.5 client/core.
 
-Instead of broad custom phases, the server selects a historical World of Warcraft patch and applies every patch data layer up to that point. The immediate development target is Vanilla (`1.1` through `1.12`) on an AzerothCore 3.3.5 server.
+The repository is still named `mod-progression` while the rewrite is in progress. "Unified Progression" is the working project name for the new architecture.
 
-## Configuration
+## Why this fork exists
 
-Set the active patch in `mod_progression.conf`:
+The original progression setup grew into several overlapping systems:
+
+- server-wide historical content progression,
+- level/bracket progression,
+- individual-character progression,
+- SQL that directly phases creatures and gameobjects,
+- runtime hooks that separately gate maps, mechanics and player power.
+
+Each system solves a useful problem, but running them together can create contradictory world state. One module can make an NPC visible while another still hides the quest object it depends on. A level unlock can remove a database restriction that a historical patch still expects to exist. Two difficulty layers can also modify the same player behavior at the same time.
+
+This fork exists to remove those overlaps and make progression have **one source of truth**.
+
+## Core design
+
+Unified Progression separates progression into three concepts.
+
+### 1. Historical patch
 
 ```ini
 Progression.Patch = 0
 ```
 
-Patch `0` is **1.1: World of Warcraft**.
+The active patch determines what content existed at that point in World of Warcraft's timeline. Patch SQL is cumulative and is applied in historical order.
 
-Patch SQL is cumulative. For example, selecting patch `5` (1.6) applies the SQL layers for 1.1, 1.2, 1.3, 1.4, 1.5 and 1.6 in order.
+For example, selecting patch `2` applies the 1.1, 1.2 and 1.3 data layers.
 
-The module auto-detects both supported source folder names:
+### 2. Level milestone
 
-- `mod-02-progression` — Ashbringer/module-ordering layout
-- `mod-progression` — normal AzerothCore layout
+```ini
+Progression.LevelGating.Enabled = 1
+Progression.LevelCap = 60
+```
 
-If you use another folder name, set `Progression.ModuleDirectory`.
+Level progression controls the current leveling milestone without competing with patch SQL for ownership of historical content state.
 
-## Patch map
+The supported milestone ladder is:
 
-### Vanilla
+`10 -> 20 -> 30 -> 40 -> 50 -> 60 -> 70 -> 80`
+
+Content is available only when both the level milestone and the historical patch allow it.
+
+### 3. Progression scope
+
+The individual-progression merge will define **whose progression state is evaluated**, rather than maintaining a second independent content timeline.
+
+Planned scopes are:
+
+- `Server` — one shared progression state for the realm.
+- `Character` — each character progresses independently using the same patch/content definitions.
+- `Account` — a possible future option for progression shared across characters.
+
+The goal is to reuse the persistence, phasing and player-aware behavior from Individual Player Progression while keeping one authoritative definition of what every patch unlocks.
+
+See `docs/unified-progression.md` for the architecture.
+
+## The most important rule: unlocks are atomic
+
+A content unlock is not just a creature phase or one SQL row.
+
+If a feature depends on several pieces, those pieces must move through progression together. A historical unlock may include:
+
+- creatures and NPCs,
+- gameobjects,
+- quest starters and quest enders,
+- quest items and loot,
+- vendors and trainers,
+- instance access,
+- conditions and disables,
+- scripts and runtime behavior.
+
+The rewrite treats these as one logical content bundle.
+
+This rule was reinforced during the Vanilla audit by the Molten Core discovery/attunement chain. The old patch data hides both Lothos Riftwaker and the Core Fragment in the initial state, and the 1.3 layer restores both. A temporary correction had incorrectly restored Lothos during 1.1 while leaving the Core Fragment hidden, creating an impossible quest state. That correction has been removed. The lesson is now part of the module design: **dependent progression data must never be advanced independently.**
+
+## Vanilla patch map
 
 | ID | Patch | Title |
 |---:|:---:|---|
@@ -42,37 +97,92 @@ If you use another folder name, set `Progression.ModuleDirectory`.
 | 10 | 1.11 | Shadow of the Necropolis |
 | 11 | 1.12 | Drums of War |
 
-TBC and Wrath patch SQL has also been restored as a foundation, but the active accuracy audit is currently focused on Vanilla.
+TBC and Wrath patch SQL is also present as a foundation, but the active accuracy audit is currently focused on Vanilla before the later eras are trusted as authoritative progression data.
 
 ## Accuracy model
 
-A 3.3.5 client/core cannot literally become a 1.1 client. The goal is to emulate the historical server experience as closely as practical:
+A 3.3.5 client/core cannot literally become a 1.1, 1.12, 2.x or early-Wrath client. Unified Progression therefore separates historical accuracy into four layers:
 
-1. **Exact data gating** — creatures, gameobjects, quests, vendors, recipes, loot, dungeon/raid access, world bosses and events.
-2. **Core/runtime rules** — level/expansion limits, honor availability, weather, quest UI behavior, battleground rules and other settings AzerothCore exposes.
-3. **Server-side approximations** — damage/healing scaling and other behavior where 3.3.5 mechanics differ materially.
-4. **Client-limited behavior** — documented explicitly when the 3.3.5 client prevents faithful emulation.
+1. **Data gating** — creatures, gameobjects, quests, vendors, recipes, loot, instances, raids, world bosses and events.
+2. **Runtime rules** — level/expansion caps, battleground availability, quest UI behavior and other rules exposed by AzerothCore.
+3. **Server-side approximations** — mechanics or tuning needed because the 3.3.5 ruleset differs materially from the target era.
+4. **Client limitations** — behavior that cannot be faithfully reproduced without client changes and must therefore be documented rather than silently approximated.
 
-See `docs/vanilla-patch-roadmap.md` for the audit plan and known gaps.
+See `docs/vanilla-patch-roadmap.md` for the ongoing audit.
 
-## SQL loading and reset
+## SQL loading
 
-The module uses AzerothCore's database updater to load the selected patch directories. Startup logging now reports the resolved module source directory and how many cumulative patch directories were queued.
+The module uses AzerothCore's database updater and loads every patch directory from 1.1 through the selected patch.
 
-During development, this can be used to force patch SQL to re-run:
+It automatically detects either supported module source directory:
+
+- `mod-02-progression`
+- `mod-progression`
+
+A custom source directory can be supplied with `Progression.ModuleDirectory`.
+
+### Resetting patch SQL
+
+During development or when intentionally moving backward in the timeline:
 
 ```ini
 Progression.Reset = 1
 ```
 
-After the desired SQL has been reapplied successfully, turn it back off:
+This clears the module's `patch_*` updater records so the selected cumulative patch layers are reapplied on startup.
+
+After a successful reset, return it to:
 
 ```ini
 Progression.Reset = 0
 ```
 
-## Current 1.1 correction
+A reset is not intended to be a permanent runtime mode.
 
-The historical patch SQL hid Lothos Riftwaker, Rokaro and Emberstrife even though Molten Core and Onyxia's Lair belong to the launch-era 1.1 content set. A final 1.1 correction layer restores those NPCs to the normal world phase.
+## Current recommended Vanilla configuration
 
-This is the first of a larger Vanilla patch-by-patch audit.
+```ini
+Progression.LevelGating.Enabled = 1
+Progression.LevelCap = 60
+Progression.Patch = 0
+Progression.Reset = 0
+```
+
+Adjust the selected patch as the realm progresses.
+
+## Admin command
+
+```text
+.progression info
+```
+
+This reports the active patch, level gating state, effective level cap, patch-era cap and SQL reset state.
+
+## Rewrite and merge roadmap
+
+The current work is intentionally more than a patch-data cleanup.
+
+1. Audit Vanilla patch SQL and remove contradictory/stale unlocks.
+2. Convert content unlocks into deterministic, testable patch bundles.
+3. Finish migrating the useful level-bracket behavior into the unified runtime engine.
+4. Merge Individual Player Progression persistence and player-aware phasing as a progression **scope**, not as another competing timeline.
+5. Consolidate damage/healing and other era-simulation settings so only one subsystem owns each modifier.
+6. Add validation that detects incomplete unlock bundles and suspicious hidden-content rows before they reach a live realm.
+7. Audit TBC and Wrath with the same rules after Vanilla is stable.
+8. Rename/rebrand the repository and configuration namespace once the unified implementation is ready to replace the legacy modules cleanly.
+
+## Relationship to Individual Player Progression
+
+Individual Player Progression contains valuable work that this project intends to preserve, including character-specific progression persistence, player-aware NPC/gameobject visibility, restored historical content and Playerbots-friendly progression.
+
+The merge is not intended to discard that work. Instead, the goal is to remove duplicate definitions of progression. Unified Progression should answer **what is unlocked**, while the selected progression scope answers **for whom it is unlocked**.
+
+## Project status
+
+This branch is an active rewrite and audit. It should be treated as development software until the Vanilla timeline has been validated end-to-end.
+
+If you are testing it, keep database backups and use `.progression info` when reporting progression-state problems. Reports that identify the active patch, level cap, affected NPC/gameobject/quest ID and current `phaseMask` are especially useful.
+
+## Credits
+
+This work builds on the original `mod-progression`, Individual Player Progression, AzerothCore, TrinityCore and the historical data and restoration work contributed by the wider emulator community. The rewrite exists to make those ideas cooperate predictably rather than forcing server owners to stack several progression systems that can disagree with one another.
