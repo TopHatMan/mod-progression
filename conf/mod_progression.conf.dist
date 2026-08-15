@@ -1,34 +1,47 @@
 [worldserver]
 
 ###################################################################################################
-#    Progression.Phase
-#        Description: The currently active phase. It will always include all content up to and including the set phase.
-#                     0 -  Phase 0: Leveling & Dungeons
-#                     1 -  Phase 1: Maraudon, Molten Core, Onyxia's Lair
-#                     2 -  Phase 2: Dire Maul, Azuregos, Lord Kazzak, Alterac Valley, Warsong Gulch
-#                     3 -  Phase 3: Blackwing Lair, Darkmoon Faire, Arathi Basin
-#                     4 -  Phase 4: Zul'Gurub, Dragons of Nightmare
-#                     5 -  Phase 5: Ahn'Qiraj, Stranglethorn Fishing Extravaganza
-#                     6 -  Phase 6: Naxxramas, Scourge Invasion
-#                     7 -  Phase 7: Blood Elf, Draenei, Outland Leveling & Dungeons, Jewelcrafting, Eye of the Storm
-#                     8 -  Phase 8: Karazhan, Gruul's Lair, Magtheridon's Lair, Arena Season 1
-#                     9 -  Phase 9: Serpentshrine Cavern, Tempest Keep: The Eye, Ogri'la, Sha'tari Skyguard, Arena Season 2
-#                     10 - Phase 10: Battle for Mount Hyjal, Black Temple, Arena Season 3
-#                     11 - Phase 11: Zul'Aman
-#                     12 - Phase 12: Isle of Quel'Danas, Magister's Terrace, Sunwell Plateau, Arena Season 4
-#                     13 - Phase 13: Death Knight, WotLK Leveling & Dungeons, Strand of the Ancients
-#                     14 - Phase 14: Naxxramas, Eye of Eternity, Obsidian Sanctum, Vault of Archavon, Arena Season 5
-#                     15 - Phase 15: Ulduar, Isle of Conquest, Arena Season 6
-#                     16 - Phase 16: Trial of the Crusader, Trial of the Champion, Argent Tournament Grounds, Onyxia's Lair, Arena Season 7
-#                     17 - Phase 17: Forge of Souls, Pit of Saron, Halls of Reflection, Icecrown Citadel, Arena Season 8
-#        Default:     18 - Phase 18: Ruby Sanctum
+#    Progression.Patch
+#        Description: The currently active World of Warcraft patch.
+#                     Patch SQL is cumulative: selecting 1.6 applies 1.1 through 1.6.
 #
+#                     0  - 1.1   World of Warcraft
+#                     1  - 1.2   Mysteries of Maraudon
+#                     2  - 1.3   Ruins of the Dire Maul
+#                     3  - 1.4   The Call to War
+#                     4  - 1.5   Battlegrounds
+#                     5  - 1.6   Assault on Blackwing Lair
+#                     6  - 1.7   Rise of the Blood God
+#                     7  - 1.8   Dragons of Nightmare
+#                     8  - 1.9   The Gates of Ahn'Qiraj
+#                     9  - 1.10  Storms of Azeroth
+#                     10 - 1.11  Shadow of the Necropolis
+#                     11 - 1.12  Drums of War
+#                     12 - 2.0   Before the Storm
+#                     13 - 2.1   Black Temple
+#                     14 - 2.2   Voice Chat
+#                     15 - 2.3   The Gods of Zul'Aman
+#                     16 - 2.4   Fury of the Sunwell
+#                     17 - 3.0   Echoes of Doom
+#                     18 - 3.1   Secrets of Ulduar
+#                     19 - 3.2   Call of the Crusade
+#                     20 - 3.3   Fall of the Lich King
+#                     21 - 3.3.5 Assault on the Ruby Sanctum
+#
+#        Default:     0 - Patch 1.1
+#
+Progression.Patch = 0
 
-Progression.Phase = 18
+#
+#    Progression.ModuleDirectory
+#        Description: Optional source-folder override for patch SQL auto-loading.
+#                     Leave unset for automatic detection of mod-02-progression or mod-progression.
+#        Example:     Progression.ModuleDirectory = mod-02-progression
+#
 
 #
 #    Progression.IcecrownCitadel.Aura
-#        Description: Set the aura inside Icecrown Citadel
+#        Description: Set the Icecrown Citadel faction aura.
 #                     0 - No buff
 #                     1 - 5%
 #                     2 - 10%
@@ -37,71 +50,56 @@ Progression.Phase = 18
 #                     5 - 25%
 #        Default:     6 - 30%
 #
-
 Progression.IcecrownCitadel.Aura = 6
 
 #
 #    Progression.QuestInfo.Enforced
-#        Description: Enforce quest-related information based on the active phase
-#                     This includes quest markers on the map, object sparkles and point of interests
-#                     0 - Disabled
-#        Default:     1 - Enabled
+#        Description: Enforce patch-era quest markers, sparkles and points of interest.
+#        Default:     1
 #
-
 Progression.QuestInfo.Enforced = 1
 
 #
 #    Progression.DualTalent.Enforced
-#        Description: Enforce the availability of dual talent specialization based on the active phase
-#                     0 - Disabled
-#        Default:     1 - Enabled
+#        Description: Enforce patch-era availability of dual talent specialization.
+#        Default:     1
 #
-
 Progression.DualTalent.Enforced = 1
 
 #
 #    Progression.TradableBindsOnPickup.Enforced
-#        Description: Enforce binds on pickup items being tradable based on the active phase
-#                     0 - Disabled
-#        Default:     1 - Enabled
+#        Description: Enforce patch-era BoP trade behavior.
+#        Default:     1
 #
-
 Progression.TradableBindsOnPickup.Enforced = 1
 
 #
 #    Progression.DungeonFinder.Enforced
-#        Description: Enforce the availability of the dungeon finder based on the active patch
-#                     0 - Disabled
-#        Default:     1 - Enabled
+#        Description: Enforce patch-era Dungeon Finder availability.
+#        Default:     1
 #
-
 Progression.DungeonFinder.Enforced = 1
 
 #
 #    Progression.Multiplier.Damage
-#        Description: Set the multiplier for damage done by players in phases prior to 13
+#        Description: Approximate pre-Wrath player damage on the 3.3.5 client/core.
 #        Default:     0.6
 #
-
 Progression.Multiplier.Damage = 0.6
 
 #
 #    Progression.Multiplier.Healing
-#        Description: Set the multiplier for healing done by player in phases prior to 13
+#        Description: Approximate pre-Wrath player healing on the 3.3.5 client/core.
 #        Default:     0.5
 #
-
 Progression.Multiplier.Healing = 0.5
 
 #
 #    Progression.Reset
-#        Description: Reapply all SQL files on startup
-#                     This is useful when moving to an older phase, after making changes or to make sure it's up-to-date
-#        Default:     0 - Disabled
-#                     1 - Enabled
+#        Description: Reapply all selected patch SQL on startup by clearing patch_* updater records.
+#                     Useful after changing to an older patch or while developing patch SQL.
+#        Default:     0
 #
-
 Progression.Reset = 0
 
-#
 ###################################################################################################

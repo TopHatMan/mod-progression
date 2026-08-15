@@ -10,7 +10,7 @@ void Progression::OnPlayerUpdateArea(Player* player, uint32 /*oldArea*/, uint32 
     if (player->IsInFlight())
         return;
 
-    if (sProgressionMgr->GetPhaseId() < 16)
+    if (sProgressionMgr->GetPatchId() < PATCH_CALL_OF_THE_CRUSADE)
     {
         if (newArea == AREA_ARGENT_TOURNAMENT_GROUNDS)
         {
@@ -22,7 +22,7 @@ void Progression::OnPlayerUpdateArea(Player* player, uint32 /*oldArea*/, uint32 
 
 bool Progression::OnPlayerShouldBeRewardedWithMoneyInsteadOfExp(Player* player)
 {
-    if (sProgressionMgr->GetPhaseId() < 6)
+    if (sProgressionMgr->GetPatchId() < PATCH_STORMS_OF_AZEROTH)
         return false;
 
     if ((player->GetLevel() == 60 && sWorld->getIntConfig(CONFIG_EXPANSION) == EXPANSION_CLASSIC) ||
@@ -35,7 +35,7 @@ bool Progression::OnPlayerShouldBeRewardedWithMoneyInsteadOfExp(Player* player)
 
 bool Progression::OnPlayerUpdateFishingSkill(Player* /*player*/, int32 /*skill*/, int32 /*zone_skill*/, int32 chance, int32 roll)
 {
-    if (sProgressionMgr->GetPhaseId() < 13)
+    if (sProgressionMgr->GetPatchId() < PATCH_ECHOES_OF_DOOM)
         if (chance < roll)
             return false;
 
@@ -44,7 +44,7 @@ bool Progression::OnPlayerUpdateFishingSkill(Player* /*player*/, int32 /*skill*/
 
 bool Progression::OnPlayerReputationChange(Player* /*player*/, uint32 factionID, int32& /*standing*/, bool /*incremental*/)
 {
-    if ((factionID == 911 || factionID == 930) && sProgressionMgr->GetPhaseId() < 7)
+    if ((factionID == 911 || factionID == 930) && sProgressionMgr->GetPatchId() < PATCH_BEFORE_THE_STORM)
         return false;
 
     return true;
@@ -52,12 +52,12 @@ bool Progression::OnPlayerReputationChange(Player* /*player*/, uint32 factionID,
 
 void Progression::OnPlayerQuestComputeXP(Player* /*player*/, Quest const* quest, uint32& xpValue)
 {
-    if (sProgressionMgr->GetPhaseId() < 7 && quest->GetQuestLevel() >= 30 && quest->GetQuestLevel() <= 60)
+    if (sProgressionMgr->GetPatchId() < PATCH_THE_GODS_OF_ZUL_AMAN && quest->GetQuestLevel() >= 30 && quest->GetQuestLevel() <= 60)
         xpValue = uint32(ceilf(xpValue / 1.428571429f));
 }
 
 void Progression::OnPlayerGiveXP(Player* /*player*/, uint32& amount, Unit* /*victim*/, uint8 xpSource)
 {
-    if (xpSource == PlayerXPSource::XPSOURCE_BATTLEGROUND && sProgressionMgr->GetPhaseId() < 13)
+    if (xpSource == PlayerXPSource::XPSOURCE_BATTLEGROUND && sProgressionMgr->GetPatchId() < PATCH_CALL_OF_THE_CRUSADE)
         amount = 0;
 }

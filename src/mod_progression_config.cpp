@@ -6,36 +6,36 @@ void Progression::OnAfterConfigLoad(bool reload)
 
     if (!reload)
     {
-        uint8 PhaseId = sConfigMgr->GetOption<uint8>("Progression.Phase", 18);
-        uint8 AuraId = sConfigMgr->GetOption<uint8>("Progression.IcecrownCitadel.Aura", 6);
+        uint8 patchId = sConfigMgr->GetOption<uint8>("Progression.Patch", DEFAULT_PROGRESSION_PATCH);
+        uint8 auraId = sConfigMgr->GetOption<uint8>("Progression.IcecrownCitadel.Aura", 6);
 
-        if (PhaseId > 18)
+        if (patchId >= PATCH_MAX)
         {
-            LOG_ERROR("server.loading", "Phase ({}) must be in range 0..18. Using default value ({}).", PhaseId, 18);
-            PhaseId = 18;
+            LOG_ERROR("server.loading", "Patch ({}) must be in range 0..{}. Using patch 1.1 ({}).", patchId, PATCH_MAX - 1, DEFAULT_PROGRESSION_PATCH);
+            patchId = DEFAULT_PROGRESSION_PATCH;
         }
 
-        LOG_INFO("server.loading", ">> Phase ID set to {}", PhaseId);
-        sProgressionMgr->SetPhaseId(PhaseId);
+        LOG_INFO("server.loading", ">> Patch ID set to {}", patchId);
+        sProgressionMgr->SetPatchId(patchId);
 
-        if (AuraId > 6)
+        if (auraId > 6)
         {
-            LOG_ERROR("server.loading", "Aura ({}) must be in range 0..6. Using default value ({}).", AuraId, 6);
-            AuraId = 6;
+            LOG_ERROR("server.loading", "Aura ({}) must be in range 0..6. Using default value ({}).", auraId, 6);
+            auraId = 6;
         }
 
-        LOG_INFO("server.loading", ">> Aura set to {}", AuraId);
-        sProgressionMgr->SetAuraId(AuraId);
+        LOG_INFO("server.loading", ">> Aura set to {}", auraId);
+        sProgressionMgr->SetAuraId(auraId);
 
         uint32 expansion = EXPANSION_WRATH_OF_THE_LICH_KING;
         uint32 maxLevel = 80;
 
-        if (PhaseId < 7)
+        if (patchId < PATCH_BEFORE_THE_STORM)
         {
             expansion = EXPANSION_CLASSIC;
             maxLevel = 60;
         }
-        else if (PhaseId < 13)
+        else if (patchId < PATCH_ECHOES_OF_DOOM)
         {
             expansion = EXPANSION_THE_BURNING_CRUSADE;
             maxLevel = 70;
@@ -52,7 +52,7 @@ void Progression::OnAfterConfigLoad(bool reload)
 
         if (sConfigMgr->GetOption<bool>("Progression.QuestInfo.Enforced", true))
         {
-            if (PhaseId < 7)
+            if (patchId < PATCH_THE_GODS_OF_ZUL_AMAN)
             {
                 LOG_INFO("server.loading", ">> Disabled object quest markers");
                 sWorld->setBoolConfig(CONFIG_OBJECT_QUEST_MARKERS, false);
@@ -61,7 +61,7 @@ void Progression::OnAfterConfigLoad(bool reload)
                 sWorld->setBoolConfig(CONFIG_OBJECT_SPARKLES, false);
             }
 
-            if (PhaseId < 17)
+            if (patchId < PATCH_FALL_OF_THE_LICH_KING)
             {
                 LOG_INFO("server.loading", ">> Points of interest for quests disabled");
                 sWorld->setBoolConfig(CONFIG_QUEST_POI_ENABLED, false);
@@ -69,22 +69,22 @@ void Progression::OnAfterConfigLoad(bool reload)
         }
     }
 
-    uint8 PhaseId = sProgressionMgr->GetPhaseId();
-    uint8 AuraId = sProgressionMgr->GetAuraId();
+    uint8 patchId = sProgressionMgr->GetPatchId();
+    uint8 auraId = sProgressionMgr->GetAuraId();
 
-    if (PhaseId < 6)
+    if (patchId < PATCH_STORMS_OF_AZEROTH)
     {
         LOG_INFO("server.loading", ">> Disabled weather");
         sWorld->setBoolConfig(CONFIG_WEATHER, false);
     }
 
-    if (PhaseId < 7)
+    if (patchId < PATCH_THE_GODS_OF_ZUL_AMAN)
     {
         LOG_INFO("server.loading", ">> Disabled Alterac Valley reinforcements");
         sWorld->setIntConfig(CONFIG_BATTLEGROUND_ALTERAC_REINFORCEMENTS, 0);
     }
 
-    if (PhaseId < 13)
+    if (patchId < PATCH_ECHOES_OF_DOOM)
     {
         LOG_INFO("server.loading", ">> Water breath timer set to 60 seconds");
         sWorld->setIntConfig(CONFIG_WATER_BREATH_TIMER, 60000);
@@ -95,25 +95,19 @@ void Progression::OnAfterConfigLoad(bool reload)
         LOG_INFO("server.loading", ">> Enabled legacy arena points calculation");
         sWorld->setIntConfig(CONFIG_LEGACY_ARENA_POINTS_CALC, true);
 
-        float DamageMultiplier = sConfigMgr->GetOption<float>("Progression.Multiplier.Damage", 0.6f);
-        LOG_INFO("server.loading", ">> Damage multiplier set to {}", DamageMultiplier);
-        sProgressionMgr->SetDamageMultiplier(DamageMultiplier);
+        float damageMultiplier = sConfigMgr->GetOption<float>("Progression.Multiplier.Damage", 0.6f);
+        LOG_INFO("server.loading", ">> Damage multiplier set to {}", damageMultiplier);
+        sProgressionMgr->SetDamageMultiplier(damageMultiplier);
 
-        float HealingMultiplier = sConfigMgr->GetOption<float>("Progression.Multiplier.Healing", 0.5f);
-        LOG_INFO("server.loading", ">> Healing multiplier set to {}", HealingMultiplier);
-        sProgressionMgr->SetHealingMultiplier(HealingMultiplier);
+        float healingMultiplier = sConfigMgr->GetOption<float>("Progression.Multiplier.Healing", 0.5f);
+        LOG_INFO("server.loading", ">> Healing multiplier set to {}", healingMultiplier);
+        sProgressionMgr->SetHealingMultiplier(healingMultiplier);
     }
 
-    if (PhaseId < 16)
+    if (patchId < PATCH_CALL_OF_THE_CRUSADE)
     {
         LOG_INFO("server.loading", ">> Disabled quest auto accept");
         sWorld->setBoolConfig(CONFIG_QUEST_IGNORE_AUTO_ACCEPT, true);
-
-        if (sConfigMgr->GetOption<bool>("Progression.DualTalent.Enforced", true))
-        {
-            LOG_INFO("server.loading", ">> Disabled dual talent specialization");
-            sWorld->setIntConfig(CONFIG_MIN_DUALSPEC_LEVEL, 255);
-        }
 
         if (sConfigMgr->GetOption<bool>("Progression.TradableBindsOnPickup.Enforced", true))
         {
@@ -136,7 +130,13 @@ void Progression::OnAfterConfigLoad(bool reload)
         sWorld->setIntConfig(CONFIG_BATTLEGROUND_EYEOFTHESTORM_CAPTUREPOINTS, 2000);
     }
 
-    if (PhaseId < 17)
+    if (patchId < PATCH_SECRETS_OF_ULDUAR && sConfigMgr->GetOption<bool>("Progression.DualTalent.Enforced", true))
+    {
+        LOG_INFO("server.loading", ">> Disabled dual talent specialization");
+        sWorld->setIntConfig(CONFIG_MIN_DUALSPEC_LEVEL, 255);
+    }
+
+    if (patchId < PATCH_FALL_OF_THE_LICH_KING)
     {
         if (sConfigMgr->GetOption<bool>("Progression.DungeonFinder.Enforced", true))
         {
@@ -146,21 +146,27 @@ void Progression::OnAfterConfigLoad(bool reload)
 
         LOG_INFO("server.loading", ">> Low level regen boost disabled");
         sWorld->setBoolConfig(CONFIG_LOW_LEVEL_REGEN_BOOST, false);
+    }
 
-        float honorRate = sWorld->getRate(RATE_HONOR);
-        if (PhaseId < 2)
-            honorRate = 0.0f;
-        else
-            honorRate = 0.5f;
+    float honorRate = sWorld->getRate(RATE_HONOR);
+    if (patchId < PATCH_THE_CALL_TO_WAR)
+        honorRate = 0.0f;
+    else if (patchId < PATCH_FALL_OF_THE_LICH_KING)
+        honorRate = 0.5f;
 
-        LOG_INFO("server.loading", ">> Honor rate set to {}", honorRate);
-        sWorld->setRate(RATE_HONOR, honorRate);
+    LOG_INFO("server.loading", ">> Honor rate set to {}", honorRate);
+    sWorld->setRate(RATE_HONOR, honorRate);
+
+    if (patchId < PATCH_BEFORE_THE_STORM)
+    {
+        LOG_INFO("server.loading", ">> Arena points disabled");
+        sWorld->setRate(RATE_ARENA_POINTS, 0.0f);
     }
 
     uint32 allianceBuffId = 73828;
     uint32 hordeBuffId = 73822;
 
-    switch (AuraId)
+    switch (auraId)
     {
     case 0:
         allianceBuffId = 0;

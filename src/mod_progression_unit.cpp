@@ -4,7 +4,7 @@
 
 void Progression::ModifyPeriodicDamageAurasTick(Unit* /*target*/, Unit* attacker, uint32& damage, SpellInfo const* spellInfo)
 {
-    if (sProgressionMgr->GetPhaseId() >= 13)
+    if (sProgressionMgr->GetPatchId() >= PATCH_ECHOES_OF_DOOM)
         return;
 
     if (!attacker)
@@ -22,7 +22,7 @@ void Progression::ModifyPeriodicDamageAurasTick(Unit* /*target*/, Unit* attacker
 
 void Progression::ModifyMeleeDamage(Unit* /*target*/, Unit* attacker, uint32& damage)
 {
-    if (sProgressionMgr->GetPhaseId() >= 13)
+    if (sProgressionMgr->GetPatchId() >= PATCH_ECHOES_OF_DOOM)
         return;
 
     if (!attacker)
@@ -37,7 +37,7 @@ void Progression::ModifyMeleeDamage(Unit* /*target*/, Unit* attacker, uint32& da
 
 void Progression::ModifySpellDamageTaken(Unit* /*target*/, Unit* attacker, int32& damage, SpellInfo const* /*spellInfo*/)
 {
-    if (sProgressionMgr->GetPhaseId() >= 13)
+    if (sProgressionMgr->GetPatchId() >= PATCH_ECHOES_OF_DOOM)
         return;
 
     if (!attacker)
@@ -52,7 +52,7 @@ void Progression::ModifySpellDamageTaken(Unit* /*target*/, Unit* attacker, int32
 
 void Progression::ModifyHealReceived(Unit* /*target*/, Unit* healer, uint32& heal, SpellInfo const* spellInfo)
 {
-    if (sProgressionMgr->GetPhaseId() >= 13)
+    if (sProgressionMgr->GetPatchId() >= PATCH_ECHOES_OF_DOOM)
         return;
 
     if (!healer)
